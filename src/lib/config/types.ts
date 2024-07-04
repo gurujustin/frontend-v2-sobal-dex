@@ -148,7 +148,6 @@ export interface Config {
   solanaRpcName?: string;
   solanaExplorer?: string;
   solanaExplorerSuffix?: string;
-  solanaLegacy?: boolean;
   gauges: {
     type: number;
     weight: number;
