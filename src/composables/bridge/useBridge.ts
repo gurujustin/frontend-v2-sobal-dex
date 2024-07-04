@@ -50,7 +50,7 @@ export async function bridgeToken(
   const solanaWallet = new PublicKey(publicKeyTrimmed);
   const nativeOverride = ref(false);
 
-  const neonEvmProgram = new PublicKey(neonProxyStatus.NEON_EVM_ID);
+  const neonEvmProgram = new PublicKey(neonProxyStatus.neonEvmProgramId);
 
   // Solana to EVM
   if (walletType === WalletTypes.Solana) {
@@ -75,8 +75,7 @@ export async function bridgeToken(
         neonTokenMint,
         configService.network.nativeAsset,
         amount,
-        chainId,
-        configService.network.solanaLegacy
+        chainId
       );
 
       transaction.recentBlockhash = (
@@ -132,8 +131,7 @@ export async function bridgeToken(
         account,
         configService.network.solanaNativeAsset,
         amount,
-        chainId,
-        configService.network.solanaLegacy
+        chainId
       );
 
       transaction.recentBlockhash = (
@@ -183,8 +181,7 @@ export async function bridgeToken(
         account,
         token,
         amount,
-        chainId,
-        configService.network.solanaLegacy
+        chainId
       );
 
       transaction.recentBlockhash = (
@@ -287,59 +284,65 @@ export async function bridgeToken(
       // TX Type: EVM
       return signedNeonTransaction;
     } else {
-      const accountBalance = await connection.getBalance(solanaWallet);
-      if (accountBalance === 0) throw t('insufficientBalanceSolana');
-
       const associatedToken = getAssociatedTokenAddressSync(
         mintPubkey,
         solanaWallet
       );
 
-      setButtonState('Building Solana account preparation transaction...');
-
-      const solanaTransaction = createMintSolanaTransaction(
-        solanaWallet,
-        mintPubkey,
-        associatedToken,
-        neonProxyStatus
-      );
-      solanaTransaction.recentBlockhash = (
-        await connection.getLatestBlockhash()
-      ).blockhash;
-
-      setButtonState('Simulating Solana transaction on network...');
-
-      const simulatedTx = await simulateTransaction(
-        connection,
-        solanaTransaction,
-        'finalized'
-      );
-      console.log('Solana Simulated Transaction', simulatedTx);
-
-      setButtonState(
-        'Please confirm Solana account preparation transaction on your wallet'
+      const associatedTokenAccount = await connection.getAccountInfo(
+        associatedToken
       );
 
-      const signedSolanaTransaction = await sendSolanaTransaction(
-        connection,
-        solanaTransaction,
-        true,
-        sendTransaction,
-        { skipPreflight: false },
-        setButtonState
-      );
+      if (!associatedTokenAccount) {
+        const accountBalance = await connection.getBalance(solanaWallet);
+        if (accountBalance === 0) throw t('insufficientBalanceSolana');
 
-      addTransaction({
-        id: signedSolanaTransaction,
-        type: 'tx',
-        action: `bridgeTokens`,
-        summary: `Prepare to receive ${amount} ${token.symbol} on Solana`,
-      });
+        setButtonState('Building Solana account preparation transaction...');
 
-      addNotificationForSolanaTransaction(signedSolanaTransaction, 'tx');
+        const solanaTransaction = createMintSolanaTransaction(
+          solanaWallet,
+          mintPubkey,
+          associatedToken,
+          neonProxyStatus
+        );
+        solanaTransaction.recentBlockhash = (
+          await connection.getLatestBlockhash()
+        ).blockhash;
 
-      // TX Type: Solana
-      console.log('Solana Transaction Hash', signedSolanaTransaction);
+        setButtonState('Simulating Solana transaction on network...');
+
+        const simulatedTx = await simulateTransaction(
+          connection,
+          solanaTransaction,
+          'finalized'
+        );
+        console.log('Solana Simulated Transaction', simulatedTx);
+
+        setButtonState(
+          'Please confirm Solana account preparation transaction on your wallet'
+        );
+
+        const signedSolanaTransaction = await sendSolanaTransaction(
+          connection,
+          solanaTransaction,
+          true,
+          sendTransaction,
+          { skipPreflight: false },
+          setButtonState
+        );
+
+        addTransaction({
+          id: signedSolanaTransaction,
+          type: 'tx',
+          action: `bridgeTokens`,
+          summary: `Prepare to receive ${amount} ${token.symbol} on Solana`,
+        });
+
+        addNotificationForSolanaTransaction(signedSolanaTransaction, 'tx');
+
+        // TX Type: Solana
+        console.log('Solana Transaction Hash', signedSolanaTransaction);
+      }
 
       setButtonState('Building transaction data...');
 
