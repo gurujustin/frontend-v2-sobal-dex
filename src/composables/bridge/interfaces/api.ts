@@ -1,7 +1,14 @@
-import { AccountMeta, PublicKey } from '@solana/web3.js';
+import {
+  AccountMeta,
+  PublicKey,
+  AccountInfo,
+  Connection,
+} from '@solana/web3.js';
 import { GasToken } from './tokens';
 import { NeonProxyRpcApi } from '../classes/api';
 import { Signer } from '@ethersproject/abstract-signer';
+import { TokenInfo } from '@/types/TokenList';
+import { BigNumber } from '@ethersproject/bignumber';
 
 export const enum ProxyStatus {
   unknown = 'UNKNOWN',
@@ -21,33 +28,18 @@ export interface SettingsFormState {
 }
 
 export interface NeonProgramStatus {
-  NEON_ACCOUNT_SEED_VERSION: string;
-  NEON_EVM_ID: string;
-  NEON_EVM_STEPS_LAST_ITERATION_MAX: string;
-  NEON_EVM_STEPS_MIN: string;
-  NEON_GAS_LIMIT_MULTIPLIER_NO_CHAINID: string;
-  NEON_HOLDER_MSG_SIZE: string;
-  NEON_OPERATOR_PRIORITY_SLOTS: string;
-  NEON_PAYMENT_TO_TREASURE: string;
-  NEON_STORAGE_ENTRIES_IN_CONTRACT_ACCOUNT: string;
-  NEON_TREASURY_POOL_COUNT: string;
-  NEON_TREASURY_POOL_SEED: string;
-  NEON_PKG_VERSION?: string;
-  NEON_POOL_COUNT?: string;
-  NEON_POOL_SEED?: string;
-  NEON_REQUEST_UNITS_ADDITIONAL_FEE?: string;
-  NEON_REVISION?: string;
-  NEON_SEED_VERSION?: string;
-  NEON_STATUS_NAME?: string;
-  NEON_TOKEN_MINT?: string;
-  NEON_TOKEN_MINT_DECIMALS?: string;
-  NEON_PAYMENT_TO_DEPOSIT?: string;
-  NEON_HEAP_FRAME?: string;
-  NEON_ADDITIONAL_FEE?: string;
-  NEON_CHAIN_ID?: string;
-  NEON_COMPUTE_BUDGET_HEAP_FRAME?: string;
-  NEON_COMPUTE_BUDGET_UNITS?: string;
-  NEON_COMPUTE_UNITS?: string;
+  neonAccountSeedVersion: number;
+  neonMaxEvmStepsInLastIteration: number;
+  neonMinEvmStepsInIteration: number;
+  neonGasLimitMultiplierWithoutChainId: number;
+  neonHolderMessageSize: number;
+  neonPaymentToTreasury: number;
+  neonStorageEntriesInContractAccount: number;
+  neonTreasuryPoolCount: number;
+  neonTreasuryPoolSeed: string;
+  neonEvmProgramId: string;
+  neonHeapFrame?: number;
+  neonComputeUnits?: number;
 }
 
 export interface ChainId {
@@ -61,14 +53,14 @@ export interface NeonEmulate {
   steps_executed: number;
   used_gas: number;
   iterations: number;
-  solana_accounts: SolanaAccount[];
+  solanaAccounts: SolanaAccount[];
   accounts?: NeonAccounts[];
 }
 
 export interface SolanaAccount {
   pubkey: string;
-  is_writable: boolean;
-  is_legacy: boolean;
+  isWritable: boolean;
+  isLegacy: boolean;
 }
 
 export interface NeonAccounts {
@@ -93,4 +85,37 @@ export interface MultiTokenProxy {
 export interface GasTokenData {
   tokenMintAddress: PublicKey;
   gasToken: GasToken;
+}
+
+export type ExtendedAccountInfo = Omit<
+  AccountInfo<Buffer>,
+  'owner' | 'data' | 'rentEpoch'
+> & {
+  owner: string;
+  data: string;
+  rentEpoch: number;
+};
+
+export interface SolanaOverrides {
+  solanaOverrides: Record<string, ExtendedAccountInfo>;
+}
+
+export interface ClaimInstructionConfig {
+  proxyApi: NeonProxyRpcApi;
+  neonTransaction: string;
+  connection: Connection;
+  signerAddress: string;
+  neonEvmProgram: PublicKey;
+  splToken: TokenInfo;
+  associatedTokenAddress: PublicKey;
+  fullAmount: BigNumber;
+}
+
+export interface SourceSplAccountConfig {
+  connection: Connection;
+  signerAddress: string;
+  neonEvmProgram: PublicKey;
+  splToken: TokenInfo;
+  fullAmount: BigNumber;
+  associatedTokenAddress: PublicKey;
 }
